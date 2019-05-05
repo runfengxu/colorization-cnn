@@ -76,7 +76,7 @@ class Filter(object):
         return self.bias
 
     def update(self, learning_rate):
-        self.weights -= learning_rate * self.weights_grad
+        self.weights += learning_rate * self.weights_grad
         self.bias -= learning_rate * self.bias_grad
 
         
@@ -124,6 +124,8 @@ class ConvLayer(object):
                         fil.weights_grad[i][j]+= 2*self.output_array2[filter_index][k][l]*(self.output_array[filter_index][k][l]*(1 - self.output_array[filter_index][k][l]))*a[i][j]
             
         fil.update(self.learning_rate)
+    
+    
     @staticmethod
     def calculate_output_size(input_size,filter_size,zero_padding,stride):
         return (input_size-filter_size+2*zero_padding)/stride+1
@@ -153,61 +155,69 @@ def prepare_img(img):
         arraylist['a'].append(array_a)
         arraylist['b'].append(array_b)
     return arraylist,gray
-def main():
-    files=os.listdir("training_set/")
-    t1=time.time()
-    cl=ConvLayer(input_width=256, input_height=256, filter_width=3, filter_height=3, filter_number=40, zero_padding=1, stride=1, learning_rate=0.5)
-    t2=time.time()
-    
-   # print(t2-t1)
-    for i in range(1):
-        fd=os.path.join("training_set/",files[i])
-        img=Image.open(fd)        
-        stand_arraylist,gray=prepare_img(img)
-        
-        t3=time.time()
-       # print(t3-t2)
-        for j in range(20):
-            cl.forward(gray,j)
-            loss0 = loss(cl.output_array2[j],256,256,stand_arraylist['a'][j])
-            t4=time.time()
+
+
+
+
+
+files=os.listdir("training_set/")
+t1=time.time()
+cl=ConvLayer(input_width=256, input_height=256, filter_width=3, filter_height=3, filter_number=40, zero_padding=1, stride=1, learning_rate=1)
+t2=time.time()
+
+# print(t2-t1)
+for i in range(1):
+    fd=os.path.join("training_set/",files[i])
+    img=Image.open(fd)        
+    stand_arraylist,gray=prepare_img(img)
+
+    t3=time.time()
+   # print(t3-t2)
+    for j in range(20):
+        print("j=",j)
+        cl.forward(gray,j)
+        loss0 = loss(cl.output_array2[j],256,256,stand_arraylist['a'][j])
+        print("loss0",loss0)
+        cl.backward(input_array=gray,filter_index=j)
+
+
+        cl.forward(gray,j)
+
+        loss1 = loss(cl.output_array2[j],256,256,stand_arraylist['a'][j])
+        print("loss1",loss1)
+        print("improve",loss1-loss0)
+        k=0
+        while (k <20):
             cl.backward(input_array=gray,filter_index=j)
-            t5=time.time()
-            #print(t5-t4)
             cl.forward(gray,j)
-            
-            loss1 = loss(cl.output_array2[j],256,256,stand_arraylist['a'][j])
-            k=0
-            while abs(loss1-loss0)>1e-1 and k <20:
-                cl.backward(input_array=gray,filter_index=j)
-                cl.forward(gray,j)
-                loss0=loss1.copy()
-                loss1=loss(cl.output_array2[j],256,256,stand_arraylist['a'][j])
-                k=k+1 
-                print(k)
-        for j in range(20,40):
-            cl.forward(gray,j)
-            loss0 = loss(cl.output_array2[j],256,256,stand_arraylist['b'][j-20])
-            t4=time.time()
+            loss0=loss1
+            loss1=loss(cl.output_array2[j],256,256,stand_arraylist['a'][j])
+            print("loss1-loss0",abs(loss1-loss0))
+            k=k+1 
+            print("k=",k)
+    for j in range(20,40):
+        cl.forward(gray,j)
+        loss0 = loss(cl.output_array2[j],256,256,stand_arraylist['b'][j-20])
+        t4=time.time()
+        cl.backward(input_array=gray,filter_index=j)
+        t5=time.time()
+        #print(t5-t4)
+        cl.forward(gray,j)
+
+        loss1 = loss(cl.output_array2[j],256,256,stand_arraylist['b'][j-20])
+        k=0
+        while abs(loss1-loss0)>1e-1 and k <20:
             cl.backward(input_array=gray,filter_index=j)
-            t5=time.time()
-            #print(t5-t4)
             cl.forward(gray,j)
-            
-            loss1 = loss(cl.output_array2[j],256,256,stand_arraylist['b'][j-20])
-            k=0
-            while abs(loss1-loss0)>1e-1 and k <20:
-                cl.backward(input_array=gray,filter_index=j)
-                cl.forward(gray,j)
-                loss0=loss1.copy()
-                loss1=loss(cl.output_array2[j],256,256,stand_arraylist['b'][j-20])
-                k=k+1 
-                print(k)
- 
+            loss0=loss1
+            loss1=loss(cl.output_array2[j],256,256,stand_arraylist['b'][j-20])
+            print(loss1)
+            k=k+1 
+            print(k)
+
+
+
     
     
     
     
-    
-    
-main()
